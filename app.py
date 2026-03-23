@@ -240,16 +240,26 @@ def dashboard():
     df2["Wake"] = wake_vals
     df1["Duration"] = df1["Wake"] - df1["Sleep"]
     df2["Duration"] = df2["Wake"] - df2["Sleep"]
+    df1["Date"] = pd.to_datetime(df1["Date"])
+    df2["Date"] = pd.to_datetime(df2["Date"])
+    df1 = df1.sort_values("Date")
+    df2 = df2.sort_values("Date")
     # Plot
-    plt.figure()
+    plt.figure(figsize=(10,5))
 
-    plt.plot(df1["Sleep"], label="You Sleep")
-    plt.plot(df1["Wake"], label="You Wake")
+    plt.plot(df1["Date"], df1["Sleep"], marker='o', label="Anu's Sleep")
+    plt.plot(df1["Date"], df1["Wake"], marker='o', label="Anu's Wake")
 
-    plt.plot(df2["Sleep"], label="Friend Sleep")
-    plt.plot(df2["Wake"], label="Friend Wake")
+    plt.plot(df2["Date"], df2["Sleep"], marker='o', label="Pawan's Sleep")
+    plt.plot(df2["Date"], df2["Wake"], marker='o', label="Pawan's Wake")
 
+    plt.xlabel("Date")
+    plt.ylabel("Time (Hours)")
+    plt.title("Sleep vs Wake Comparison")
     plt.legend()
+
+    plt.xticks(rotation=45)
+    plt.tight_layout()
 
     # Convert to image
     buf = BytesIO()

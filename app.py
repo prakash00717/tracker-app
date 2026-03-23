@@ -186,8 +186,19 @@ def dashboard():
     df2 = pd.DataFrame(data2)
 
     def time_to_hours(t):
-        dt = datetime.strptime(t.strip(), "%I:%M%p")
-        return dt.hour + dt.minute / 60
+        if not t:
+            return None
+
+        t = t.strip().upper()
+
+        # Remove space before AM/PM if present
+        t = t.replace(" ", "")
+
+        try:
+            dt = datetime.strptime(t, "%I:%M%p")
+            return dt.hour + dt.minute / 60
+        except:
+            return None
 
     def adjust_sleep_wake(sleep, wake):
         if wake < sleep:

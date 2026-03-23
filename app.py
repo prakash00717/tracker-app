@@ -41,14 +41,12 @@ body {
     color: white;
 }
 
-/* Center container */
 .container {
     max-width: 400px;
     margin: 40px auto;
     padding: 20px;
 }
 
-/* Glass card */
 .card {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(15px);
@@ -57,38 +55,20 @@ body {
     box-shadow: 0 8px 30px rgba(0,0,0,0.3);
 }
 
-/* Title */
 h2 {
     text-align: center;
     margin-bottom: 20px;
 }
 
-/* Tabs */
-.tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 20px;
-}
-
-.tab {
-    flex: 1;
-    padding: 10px;
-    text-align: center;
+/* Dropdown */
+select {
+    width: 100%;
+    padding: 12px;
     border-radius: 10px;
-    background: rgba(255,255,255,0.15);
+    border: none;
+    margin-bottom: 20px;
+    background: rgba(255,255,255,0.2);
     color: white;
-    text-decoration: none;
-    transition: 0.3s;
-}
-
-.tab:hover {
-    background: rgba(255,255,255,0.3);
-}
-
-.tab.active {
-    background: white;
-    color: black;
-    font-weight: bold;
 }
 
 /* Inputs */
@@ -108,10 +88,6 @@ input {
     color: white;
 }
 
-input::placeholder {
-    color: #ddd;
-}
-
 input:focus {
     background: rgba(255,255,255,0.3);
 }
@@ -126,12 +102,10 @@ button {
     color: white;
     font-size: 16px;
     cursor: pointer;
-    transition: 0.3s;
 }
 
 button:hover {
     transform: scale(1.03);
-    box-shadow: 0 0 15px rgba(34,197,94,0.7);
 }
 
 /* Message */
@@ -150,15 +124,16 @@ button:hover {
 
         <h2>🚀 Daily Tracker</h2>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            {% for key in schema.keys() %}
-                <a href="/?sheet={{key}}" 
-                   class="tab {% if key == selected_sheet %}active{% endif %}">
-                   {{key}}
-                </a>
-            {% endfor %}
-        </div>
+        <!-- Dropdown -->
+        <form method="GET">
+            <select name="sheet" onchange="this.form.submit()">
+                {% for key in schema.keys() %}
+                    <option value="{{key}}" {% if key == selected_sheet %}selected{% endif %}>
+                        Sheet {{key}}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
 
         <!-- Form -->
         <form method="POST">
@@ -166,7 +141,7 @@ button:hover {
 
             {% for field in fields %}
                 <label>{{field}}</label>
-                <input name="{{field}}" placeholder="Enter {{field}}" required>
+                <input name="{{field}}" required>
             {% endfor %}
 
             <button type="submit">Submit</button>

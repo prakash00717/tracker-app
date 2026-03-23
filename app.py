@@ -157,6 +157,19 @@ button:hover {
     </div>
 </div>
 
+<div style="text-align:center; margin-bottom:15px;">
+    <a href="/dashboard" style="
+        text-decoration:none;
+        background:#facc15;
+        padding:10px 15px;
+        border-radius:8px;
+        color:black;
+        font-weight:bold;
+    ">
+        📊 View Dashboard
+    </a>
+</div>
+
 </body>
 </html>
 """

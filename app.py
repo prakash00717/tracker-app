@@ -19,10 +19,10 @@ workbook = client.open("Book")
 
 # ---------------- SCHEMA DEFINITION ----------------
 SCHEMA = {
-    "Pawan": ["Days", "Minoxidil (Daily) M & N", "Shampoo (Daily) M", "Body Lotion (Daily) M & N", "Leg Cream(Daily for 20 days) M & N", "Vitamin A&D (Mon-Sat) M & N", "Dutaprost Tablet(Mon/Wed/Fri) M"],
+    "Pawan": ["Date", "Minoxidil (Daily) M & N", "Shampoo (Daily) M", "Body Lotion (Daily) M & N", "Leg Cream(Daily for 20 days) M & N", "Vitamin A&D (Mon-Sat) M & N", "Dutaprost Tablet(Mon/Wed/Fri) M"],
     "daily_track_anu": ["Date", "Sleep", "Wake", "Gym", "Study", "Food"],
     "daily_track_pp": ["Date", "Sleep", "Wake", "Gym", "Study"],
-    "Anu": ["Days", "Sporamiz SB Capsules (Daily) M & N", "Teczine Tablet (Daily) E", "Body Lotion (Daily) M & E & N", "Hand Cream(Daily) M & N"]
+    "Anu": ["Date", "Sporamiz SB Capsules (Daily) M & N", "Teczine Tablet (Daily) E", "Body Lotion (Daily) M & E & N", "Hand Cream(Daily) M & N"]
 }
 
 # ---------------- HTML TEMPLATE ----------------
@@ -35,77 +35,110 @@ HTML_PAGE = """
 
 <style>
 body {
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: white;
     margin: 0;
-    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1e3a8a, #9333ea);
+    color: white;
 }
 
+/* Center container */
 .container {
     max-width: 400px;
     margin: 40px auto;
-    background: #1e293b;
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.3);
 }
 
+/* Glass card */
+.card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+/* Title */
 h2 {
     text-align: center;
+    margin-bottom: 20px;
 }
 
+/* Tabs */
 .tabs {
     display: flex;
-    justify-content: space-between;
+    gap: 6px;
     margin-bottom: 20px;
 }
 
 .tab {
     flex: 1;
     padding: 10px;
-    margin: 2px;
     text-align: center;
-    background: #334155;
-    border-radius: 8px;
-    cursor: pointer;
-    text-decoration: none;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.15);
     color: white;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.tab:hover {
+    background: rgba(255,255,255,0.3);
 }
 
 .tab.active {
-    background: #3b82f6;
+    background: white;
+    color: black;
+    font-weight: bold;
 }
 
-input, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    border: none;
-    outline: none;
+/* Inputs */
+label {
+    font-size: 14px;
 }
 
-button {
+input {
     width: 100%;
     padding: 12px;
-    background: #22c55e;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border-radius: 10px;
     border: none;
-    border-radius: 8px;
+    outline: none;
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+input::placeholder {
+    color: #ddd;
+}
+
+input:focus {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Button */
+button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #22c55e, #4ade80);
     color: white;
     font-size: 16px;
     cursor: pointer;
+    transition: 0.3s;
 }
 
 button:hover {
-    background: #16a34a;
+    transform: scale(1.03);
+    box-shadow: 0 0 15px rgba(34,197,94,0.7);
 }
 
+/* Message */
 .message {
     text-align: center;
     margin-top: 10px;
-    color: #22c55e;
+    color: #a7f3d0;
 }
 </style>
 </head>
@@ -113,31 +146,35 @@ button:hover {
 <body>
 
 <div class="container">
-    <h2>Daily Tracker</h2>
+    <div class="card">
 
-    <!-- Tabs -->
-    <div class="tabs">
-        {% for key in schema.keys() %}
-            <a href="/?sheet={{key}}" 
-               class="tab {% if key == selected_sheet %}active{% endif %}">
-               {{key}}
-            </a>
-        {% endfor %}
+        <h2>🚀 Daily Tracker</h2>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            {% for key in schema.keys() %}
+                <a href="/?sheet={{key}}" 
+                   class="tab {% if key == selected_sheet %}active{% endif %}">
+                   {{key}}
+                </a>
+            {% endfor %}
+        </div>
+
+        <!-- Form -->
+        <form method="POST">
+            <input type="hidden" name="sheet" value="{{selected_sheet}}">
+
+            {% for field in fields %}
+                <label>{{field}}</label>
+                <input name="{{field}}" placeholder="Enter {{field}}" required>
+            {% endfor %}
+
+            <button type="submit">Submit</button>
+        </form>
+
+        <div class="message">{{ message }}</div>
+
     </div>
-
-    <!-- Form -->
-    <form method="POST">
-        <input type="hidden" name="sheet" value="{{selected_sheet}}">
-
-        {% for field in fields %}
-            <label>{{field}}</label>
-            <input name="{{field}}" required>
-        {% endfor %}
-
-        <button type="submit">Submit</button>
-    </form>
-
-    <div class="message">{{ message }}</div>
 </div>
 
 </body>

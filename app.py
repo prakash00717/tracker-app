@@ -4,6 +4,11 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import os
 import json
+import pandas as pd
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -155,6 +160,81 @@ button:hover {
 </body>
 </html>
 """
+
+@app.route("/dashboard")
+def dashboard():
+    sheet1 = workbook.worksheet("daily_track_anu")
+    sheet2 = workbook.worksheet("daily_track_pp")
+
+    data1 = sheet1.get_all_records()
+    data2 = sheet2.get_all_records()
+
+    df1 = pd.DataFrame(data1)
+    df2 = pd.DataFrame(data2)
+
+    def time_to_hours(t):
+        dt = datetime.strptime(t.strip(), "%I:%M%p")
+        return dt.hour + dt.minute / 60
+
+    def adjust_sleep_wake(sleep, wake):
+        if wake < sleep:
+            wake += 24
+        return sleep, wake
+
+
+    # ---- Sheet 1 ----
+    sleep_vals = []
+    wake_vals = []
+
+    for s, w in zip(df1["Sleep"], df1["Wake"]):
+        s = time_to_hours(s)
+        w = time_to_hours(w)
+
+        s, w = adjust_sleep_wake(s, w)
+
+        sleep_vals.append(s)
+        wake_vals.append(w)
+
+    df1["Sleep"] = sleep_vals
+    df1["Wake"] = wake_vals
+
+
+    # ---- Sheet 2 ----
+    sleep_vals = []
+    wake_vals = []
+
+    for s, w in zip(df2["Sleep"], df2["Wake"]):
+        s = time_to_hours(s)
+        w = time_to_hours(w)
+
+        s, w = adjust_sleep_wake(s, w)
+
+        sleep_vals.append(s)
+        wake_vals.append(w)
+
+    df2["Sleep"] = sleep_vals
+    df2["Wake"] = wake_vals
+    df1["Duration"] = df1["Wake"] - df1["Sleep"]
+    df2["Duration"] = df2["Wake"] - df2["Sleep"]
+    # Plot
+    plt.figure()
+
+    plt.plot(df1["Sleep"], label="You Sleep")
+    plt.plot(df1["Wake"], label="You Wake")
+
+    plt.plot(df2["Sleep"], label="Friend Sleep")
+    plt.plot(df2["Wake"], label="Friend Wake")
+
+    plt.legend()
+
+    # Convert to image
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    img = base64.b64encode(buf.read()).decode("utf-8")
+
+    return f"<img src='data:image/png;base64,{img}'/>"
+
 # ---------------- ROUTE ----------------
 @app.route("/", methods=["GET", "POST"])
 def home():

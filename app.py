@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
 from datetime import datetime
+import numpy as np
 
 app = Flask(__name__)
 
@@ -50,11 +51,10 @@ body {
     max-width: 400px;
     margin: 40px auto;
     padding: 20px;
-    overflow: hidden;
 }
 
 .card {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.1);
     backdrop-filter: blur(15px);
     padding: 20px;
     border-radius: 16px;
@@ -92,12 +92,45 @@ h2 {
     color: black;
 }
 
+/* Custom Dropdown */
+.custom-dropdown {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.selected {
+    padding: 12px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.dropdown-list {
+    display: none;
+    position: absolute;
+    width: 100%;
+    background: #1e3a8a;
+    border-radius: 10px;
+    margin-top: 5px;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.dropdown-list div {
+    padding: 12px;
+    cursor: pointer;
+}
+
+.dropdown-list div:hover {
+    background: #9333ea;
+}
+
 /* Inputs */
 label {
     font-size: 14px;
 }
 
-input, select {
+input {
     width: 100%;
     padding: 12px;
     margin-top: 5px;
@@ -163,15 +196,21 @@ button:hover {
             <a href="/dashboard" class="btn primary">📊 Dashboard</a>
         </div>
 
-        <!-- Dropdown -->
-        <form method="GET">
-            <select name="sheet" onchange="this.form.submit()">
+        <!-- Custom Dropdown -->
+        <div class="custom-dropdown">
+            <div class="selected" onclick="toggleDropdown()">
+                Sheet: {{selected_sheet}}
+            </div>
+
+            <div class="dropdown-list" id="dropdown">
                 {% for key in schema.keys() %}
-                    <option value="{{key}}" {% if key == selected_sheet %}selected{% endif %}>
-                        Sheet {{key}}
-                    </option>
+                    <div onclick="selectSheet('{{key}}')">Sheet {{key}}</div>
                 {% endfor %}
-            </select>
+            </div>
+        </div>
+
+        <form id="sheetForm" method="GET">
+            <input type="hidden" name="sheet" id="sheetInput">
         </form>
 
         <!-- Form -->
@@ -190,6 +229,25 @@ button:hover {
 
     </div>
 </div>
+
+<script>
+function toggleDropdown() {
+    const d = document.getElementById("dropdown");
+    d.style.display = d.style.display === "block" ? "none" : "block";
+}
+
+function selectSheet(value) {
+    document.getElementById("sheetInput").value = value;
+    document.getElementById("sheetForm").submit();
+}
+
+/* Close dropdown if clicked outside */
+window.onclick = function(e) {
+    if (!e.target.matches('.selected')) {
+        document.getElementById("dropdown").style.display = "none";
+    }
+}
+</script>
 
 </body>
 </html>
@@ -265,6 +323,23 @@ def dashboard():
     df2["Date"] = pd.to_datetime(df2["Date"], errors='coerce', dayfirst=True)
     df1 = df1.sort_values("Date")
     df2 = df2.sort_values("Date")
+
+    # After df1, df2 processed and cleaned
+
+    # Calculate metrics
+    avg_sleep_1 = round(df1["Sleep"].mean(), 2) if not df1.empty else 0
+    avg_wake_1 = round(df1["Wake"].mean(), 2) if not df1.empty else 0
+    avg_duration_1 = round((df1["Wake"] - df1["Sleep"]).mean(), 2) if not df1.empty else 0
+
+    avg_sleep_2 = round(df2["Sleep"].mean(), 2) if not df2.empty else 0
+    avg_wake_2 = round(df2["Wake"].mean(), 2) if not df2.empty else 0
+    avg_duration_2 = round((df2["Wake"] - df2["Sleep"]).mean(), 2) if not df2.empty else 0
+
+    print("DF1:", df1)
+    print("DF2:", df2)
+    print("AVG1:", avg_sleep_1, avg_wake_1, avg_duration_1)
+    print("AVG2:", avg_sleep_2, avg_wake_2, avg_duration_2)
+
     # Plot
     plt.figure(figsize=(10,5))
     if df1.empty and df2.empty:
@@ -290,7 +365,128 @@ def dashboard():
     buf.seek(0)
     img = base64.b64encode(buf.read()).decode("utf-8")
 
-    return f"<img src='data:image/png;base64,{img}'/>"
+    return render_template_string("""
+    <!doctype html>
+    <html>
+    <head>
+    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #1e3a8a, #9333ea);
+        color: white;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .card {
+        background: rgba(255,255,255,0.2);
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .card p {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .chart {
+        text-align: center;
+    }
+
+    img {
+        max-width: 100%;
+        border-radius: 12px;
+    }
+
+    .back {
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        padding: 10px;
+        background: #38bdf8;
+        border-radius: 10px;
+        text-decoration: none;
+        color: black;
+        font-weight: bold;
+    }
+    </style>
+    </head>
+
+    <body>
+
+    <div class="container">
+
+    <h2>📊 Analytics Dashboard</h2>
+
+    <div class="cards">
+
+    <div class="card">
+    <h3>Anu's Avg Sleep</h3>
+    <p>{{avg_sleep_1}}</p>
+    </div>
+
+    <div class="card">
+    <h3>Anu's Avg Wake</h3>
+    <p>{{avg_wake_1}}</p>
+    </div>
+
+    <div class="card">
+    <h3>Anu's Duration</h3>
+    <p>{{avg_duration_1}}</p>
+    </div>
+
+    <div class="card">
+    <h3>Pawan's Avg Sleep</h3>
+    <p>{{avg_sleep_2}}</p>
+    </div>
+
+    <div class="card">
+    <h3>Pawan's Avg Wake</h3>
+    <p>{{avg_wake_2}}</p>
+    </div>
+
+    <div class="card">
+    <h3>Pawan's Duration</h3>
+    <p>{{avg_duration_2}}</p>
+    </div>
+
+    </div>
+
+    <div class="chart">
+    <img src="data:image/png;base64,{{img}}">
+    </div>
+
+    <a href="/" class="back">⬅ Back</a>
+
+    </div>
+
+    </body>
+    </html>
+    """,
+    avg_sleep_1=avg_sleep_1,
+    avg_wake_1=avg_wake_1,
+    avg_duration_1=avg_duration_1,
+    avg_sleep_2=avg_sleep_2,
+    avg_wake_2=avg_wake_2,
+    avg_duration_2=avg_duration_2,
+    img=img
+)
 
 @app.route("/data")
 def view_data():
@@ -305,54 +501,76 @@ def view_data():
     headers = data[0].keys()
 
     return render_template_string("""
+    <!doctype html>
     <html>
     <head>
-        <title>Data View</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            body {
-                font-family: Arial;
-                padding: 10px;
-                background: #111;
-                color: white;
-            }
+    <title>Data Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 15px;
-            }
+    <style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #1e3a8a, #9333ea);
+        color: white;
+    }
 
-            th, td {
-                padding: 10px;
-                border-bottom: 1px solid #444;
-                text-align: center;
-            }
+    .container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px;
+    }
 
-            th {
-                background: #222;
-            }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
 
-            select {
-                padding: 10px;
-                width: 100%;
-                margin-bottom: 10px;
-            }
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #444;
+        text-align: center;
+    }
 
-        </style>
+    th {
+        background: rgba(255,255,255,0.1);
+    }
+
+    select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        border: none;
+    }
+
+    .back {
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        padding: 10px;
+        background: #38bdf8;
+        border-radius: 10px;
+        text-decoration: none;
+        color: black;
+        font-weight: bold;
+    }
+    </style>
     </head>
 
     <body>
 
-    <h2>📊 Data Viewer</h2>
+    <div class="container">
+
+    <h2>📄 Data Viewer</h2>
 
     <form method="GET">
         <select name="sheet" onchange="this.form.submit()">
-            {% for key in ["Pawan","Anu","daily_track_anu","daily_track_pp"] %}
-                <option value="{{key}}" {% if key == selected_sheet %}selected{% endif %}>
-                    Sheet {{key}}
-                </option>
-            {% endfor %}
+            <option value="Pawan" {% if selected_sheet=="Pawan" %}selected{% endif %}>Pawan</option>
+            <option value="Anu" {% if selected_sheet=="Anu" %}selected{% endif %}>Anu</option>
+            <option value="daily_track_anu" {% if selected_sheet=="daily_track_anu" %}selected{% endif %}>daily_track_anu</option>
+            <option value="daily_track_pp" {% if selected_sheet=="daily_track_pp" %}selected{% endif %}>daily_track_pp</option>                                            
         </select>
     </form>
 
@@ -372,35 +590,36 @@ def view_data():
         {% endfor %}
     </table>
 
+    <a href="/" class="back">⬅ Back</a>
+
+    </div>
+
     </body>
     </html>
-    """, data=data, headers=headers, selected_sheet=selected_sheet)
+    """,
+    data=data,
+    headers=headers,
+    selected_sheet=selected_sheet
+    )
 
 # ---------------- ROUTE ----------------
 @app.route("/", methods=["GET", "POST"])
 def home():
-    message = ""
     selected_sheet = request.args.get("sheet", "Pawan")
 
+    fields = SCHEMA[selected_sheet]
+
+    message = ""
+
     if request.method == "POST":
-        selected_sheet = request.form["sheet"]
         sheet = workbook.worksheet(selected_sheet)
 
-        fields = SCHEMA[selected_sheet]
-
-        row = []
-        for field in fields:
-            value = request.form.get(field, "")
-            row.append(value)
-
+        row = [request.form.get(field) for field in fields]
         sheet.append_row(row)
 
-        message = f"✅ Data logged in Sheet {selected_sheet}"
+        message = "✅ Data added successfully"
 
-    fields = SCHEMA.get(selected_sheet, [])
-
-    return render_template_string(
-        HTML_PAGE,
+    return render_template_string(HTML_PAGE,
         schema=SCHEMA,
         selected_sheet=selected_sheet,
         fields=fields,

@@ -240,12 +240,14 @@ def dashboard():
     df2["Wake"] = wake_vals
     df1["Duration"] = df1["Wake"] - df1["Sleep"]
     df2["Duration"] = df2["Wake"] - df2["Sleep"]
-    df1["Date"] = pd.to_datetime(df1["Date"])
-    df2["Date"] = pd.to_datetime(df2["Date"])
+    df1["Date"] = pd.to_datetime(df1["Date"], errors='coerce', dayfirst=True)
+    df2["Date"] = pd.to_datetime(df2["Date"], errors='coerce', dayfirst=True)
     df1 = df1.sort_values("Date")
     df2 = df2.sort_values("Date")
     # Plot
     plt.figure(figsize=(10,5))
+    if df1.empty and df2.empty:
+        return "No valid data to display"
 
     plt.plot(df1["Date"], df1["Sleep"], marker='o', label="Anu's Sleep")
     plt.plot(df1["Date"], df1["Wake"], marker='o', label="Anu's Wake")

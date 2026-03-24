@@ -50,6 +50,7 @@ body {
     max-width: 400px;
     margin: 40px auto;
     padding: 20px;
+    overflow: hidden;
 }
 
 .card {
@@ -65,15 +66,30 @@ h2 {
     margin-bottom: 20px;
 }
 
-/* Dropdown */
-select {
-    width: 100%;
-    padding: 12px;
+/* Buttons */
+.top-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
     border-radius: 10px;
-    border: none;
-    margin-bottom: 20px;
-    background: rgba(255,255,255,0.2);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.primary {
+    background: #22c55e;
     color: white;
+}
+
+.secondary {
+    background: #38bdf8;
+    color: black;
 }
 
 /* Inputs */
@@ -81,7 +97,7 @@ label {
     font-size: 14px;
 }
 
-input {
+input, select {
     width: 100%;
     padding: 12px;
     margin-top: 5px;
@@ -91,6 +107,7 @@ input {
     outline: none;
     background: rgba(255,255,255,0.2);
     color: white;
+    box-sizing: border-box;
 }
 
 input:focus {
@@ -119,6 +136,17 @@ button:hover {
     margin-top: 10px;
     color: #a7f3d0;
 }
+
+/* Mobile */
+@media (max-width: 480px) {
+    .container {
+        margin: 10px;
+    }
+
+    .top-buttons {
+        flex-direction: column;
+    }
+}
 </style>
 </head>
 
@@ -128,6 +156,12 @@ button:hover {
     <div class="card">
 
         <h2>🚀 Daily Tracker</h2>
+
+        <!-- Buttons -->
+        <div class="top-buttons">
+            <a href="/data" class="btn secondary">📄 View Data</a>
+            <a href="/dashboard" class="btn primary">📊 Dashboard</a>
+        </div>
 
         <!-- Dropdown -->
         <form method="GET">
@@ -155,19 +189,6 @@ button:hover {
         <div class="message">{{ message }}</div>
 
     </div>
-</div>
-
-<div style="text-align:center; margin-bottom:15px;">
-    <a href="/dashboard" style="
-        text-decoration:none;
-        background:#facc15;
-        padding:10px 15px;
-        border-radius:8px;
-        color:black;
-        font-weight:bold;
-    ">
-        📊 View Dashboard
-    </a>
 </div>
 
 </body>
@@ -270,6 +291,90 @@ def dashboard():
     img = base64.b64encode(buf.read()).decode("utf-8")
 
     return f"<img src='data:image/png;base64,{img}'/>"
+
+@app.route("/data")
+def view_data():
+    selected_sheet = request.args.get("sheet", "Pawan")
+
+    sheet = workbook.worksheet(selected_sheet)
+    data = sheet.get_all_records()
+
+    if not data:
+        return "No data available"
+
+    headers = data[0].keys()
+
+    return render_template_string("""
+    <html>
+    <head>
+        <title>Data View</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {
+                font-family: Arial;
+                padding: 10px;
+                background: #111;
+                color: white;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+            }
+
+            th, td {
+                padding: 10px;
+                border-bottom: 1px solid #444;
+                text-align: center;
+            }
+
+            th {
+                background: #222;
+            }
+
+            select {
+                padding: 10px;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+        </style>
+    </head>
+
+    <body>
+
+    <h2>📊 Data Viewer</h2>
+
+    <form method="GET">
+        <select name="sheet" onchange="this.form.submit()">
+            {% for key in ["Pawan","Anu","daily_track_anu","daily_track_pp"] %}
+                <option value="{{key}}" {% if key == selected_sheet %}selected{% endif %}>
+                    Sheet {{key}}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <table>
+        <tr>
+            {% for h in headers %}
+                <th>{{h}}</th>
+            {% endfor %}
+        </tr>
+
+        {% for row in data %}
+        <tr>
+            {% for h in headers %}
+                <td>{{row[h]}}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+    </body>
+    </html>
+    """, data=data, headers=headers, selected_sheet=selected_sheet)
 
 # ---------------- ROUTE ----------------
 @app.route("/", methods=["GET", "POST"])

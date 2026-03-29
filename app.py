@@ -163,6 +163,22 @@ button:hover {
     transform: scale(1.03);
 }
 
+.quick-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.sleep {
+    background: #6366f1;
+    color: white;
+}
+
+.wake {
+    background: #f59e0b;
+    color: black;
+}
+
 /* Message */
 .message {
     text-align: center;
@@ -184,6 +200,11 @@ button:hover {
 </head>
 
 <body>
+
+<div class="quick-actions">
+    <a href="/sleep_now" class="btn sleep">💤 Slept Now</a>
+    <a href="/wake_now" class="btn wake">☀️ Woke Now</a>
+</div>
 
 <div class="container">
     <div class="card">
@@ -222,7 +243,11 @@ button:hover {
                 <label>{{field}}</label>
 
                 {% if field == "Date" %}
-                    <input type="date" name="{{field}}" required>
+                    <input type="date" name="{{field}}" value="{{current_date}}" required>
+
+                {% elif field in ["Sleep", "Wake"] %}
+                    <input type="time" name="{{field}}" required>
+
                 {% else %}
                     <input name="{{field}}" required>
                 {% endif %}
@@ -275,22 +300,29 @@ def dashboard():
         if not t:
             return None
 
-        t = t.strip().upper()
-
-        # Remove space before AM/PM if present
-        t = t.replace(" ", "")
+        t = t.strip()
 
         try:
-            dt = datetime.strptime(t, "%I:%M%p")
-            return dt.hour + dt.minute / 60
+            # Case 1: HTML time input (24-hour)
+            dt = datetime.strptime(t, "%H:%M")
         except:
-            return None
+            try:
+                # Case 2: Old format (AM/PM)
+                t = t.upper().replace(" ", "")
+                dt = datetime.strptime(t, "%I:%M%p")
+            except:
+                return None
+
+        return dt.hour + dt.minute / 60
 
     def adjust_sleep_wake(sleep, wake):
+        if sleep is None or wake is None:
+            return sleep, wake
+
         if wake < sleep:
             wake += 24
-        return sleep, wake
 
+        return sleep, wake
 
     # ---- Sheet 1 ----
     sleep_vals = []
@@ -494,6 +526,37 @@ def dashboard():
     avg_duration_2=avg_duration_2,
     img=img
 )
+
+@app.route("/sleep_now")
+def sleep_now():
+    sheet = workbook.worksheet("daily_track_pp")  # or dynamic user
+
+    now = datetime.now()
+
+    date = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%I:%M%p")
+
+    # Add row with Sleep only (Wake empty)
+    sheet.append_row([date, time_str, "", "", ""])
+
+    return "Sleep time recorded!"
+
+@app.route("/wake_now")
+def wake_now():
+    sheet = workbook.worksheet("daily_track_pp")
+
+    now = datetime.now()
+    time_str = now.strftime("%I:%M%p")
+
+    records = sheet.get_all_values()
+
+    # Find last row where Wake is empty
+    for i in range(len(records)-1, 0, -1):
+        if records[i][2] == "":  # Wake column
+            sheet.update_cell(i+1, 3, time_str)  # column index starts from 1
+            break
+
+    return "Wake time recorded!"
 
 @app.route("/data")
 def view_data():

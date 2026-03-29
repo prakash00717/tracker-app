@@ -218,8 +218,15 @@ button:hover {
             <input type="hidden" name="sheet" value="{{selected_sheet}}">
 
             {% for field in fields %}
+
                 <label>{{field}}</label>
-                <input name="{{field}}" required>
+
+                {% if field == "Date" %}
+                    <input type="date" name="{{field}}" required>
+                {% else %}
+                    <input name="{{field}}" required>
+                {% endif %}
+
             {% endfor %}
 
             <button type="submit">Submit</button>

@@ -10,6 +10,8 @@ from io import BytesIO
 import base64
 from datetime import datetime
 import numpy as np
+from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 
@@ -530,11 +532,10 @@ def dashboard():
 @app.route("/sleep_now")
 def sleep_now():
     sheet = workbook.worksheet("daily_track_pp")  # or dynamic user
-
-    now = datetime.now()
-
+    IST = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(IST)
     date = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%I:%M%p")
+    time_str = now.strftime("%I:%M %p")
 
     # Add row with Sleep only (Wake empty)
     sheet.append_row([date, time_str, "", "", ""])
@@ -544,9 +545,9 @@ def sleep_now():
 @app.route("/wake_now")
 def wake_now():
     sheet = workbook.worksheet("daily_track_pp")
-
-    now = datetime.now()
-    time_str = now.strftime("%I:%M%p")
+    IST = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(IST)
+    time_str = now.strftime("%I:%M %p")
 
     records = sheet.get_all_values()
 
@@ -557,6 +558,31 @@ def wake_now():
             break
 
     return "Wake time recorded!"
+
+@app.route("/edit", methods=["GET", "POST"])
+def edit_data():
+    sheet_name = request.args.get("sheet")
+    row_index = int(request.args.get("row"))
+
+    sheet = workbook.worksheet(sheet_name)
+    headers = sheet.row_values(1)
+    row_data = sheet.row_values(row_index + 1)
+
+    if request.method == "POST":
+        updated = [request.form.get(h) for h in headers]
+        sheet.update(f"A{row_index+1}", [updated])
+        return "✅ Updated successfully <br><a href='/data'>Back</a>"
+
+    return render_template_string("""
+    <h2>Edit Row</h2>
+    <form method="POST">
+        {% for h, v in data %}
+            <label>{{h}}</label>
+            <input name="{{h}}" value="{{v}}">
+        {% endfor %}
+        <button type="submit">Update</button>
+    </form>
+    """, data=zip(headers, row_data))
 
 @app.route("/data")
 def view_data():
@@ -657,6 +683,9 @@ def view_data():
                 <td>{{row[h]}}</td>
             {% endfor %}
         </tr>
+        <td>
+            <a href="/edit?sheet={{selected_sheet}}&row={{loop.index}}">✏️ Edit</a>
+        </td>
         {% endfor %}
     </table>
 

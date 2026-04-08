@@ -12,6 +12,7 @@ from datetime import datetime
 import numpy as np
 from datetime import datetime
 import pytz
+from flask import redirect
 
 app = Flask(__name__)
 
@@ -542,6 +543,20 @@ def sleep_now():
 
     return "Sleep time recorded!"
 
+@app.route("/delete")
+def delete_data():
+    from flask import redirect
+
+    sheet_name = request.args.get("sheet")
+    row_index = int(request.args.get("row"))
+
+    sheet = workbook.worksheet(sheet_name)
+
+    actual_row = row_index + 1
+    sheet.delete_rows(actual_row)
+
+    return redirect(f"/data?sheet={sheet_name}")
+
 @app.route("/wake_now")
 def wake_now():
     sheet = workbook.worksheet("daily_track_pp")
@@ -675,6 +690,7 @@ def view_data():
             {% for h in headers %}
                 <th>{{h}}</th>
             {% endfor %}
+            <th>Actions</th>
         </tr>
 
         {% for row in data %}
@@ -682,10 +698,16 @@ def view_data():
             {% for h in headers %}
                 <td>{{row[h]}}</td>
             {% endfor %}
+
+            <td>
+                <a href="/edit?sheet={{selected_sheet}}&row={{loop.index}}">✏️</a>
+                |
+                <a href="/delete?sheet={{selected_sheet}}&row={{loop.index}}"
+                onclick="return confirm('Delete this row?')">
+                🗑️
+                </a>
+            </td>
         </tr>
-        <td>
-            <a href="/edit?sheet={{selected_sheet}}&row={{loop.index}}">✏️ Edit</a>
-        </td>
         {% endfor %}
     </table>
 
